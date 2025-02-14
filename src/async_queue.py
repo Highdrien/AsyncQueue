@@ -58,7 +58,9 @@ class AsyncQueue:
         workers = [
             asyncio.create_task(self._worker()) for _ in range(self.max_concurrent)
         ]
-        return await asyncio.gather(*workers)
+        worker_results = await asyncio.gather(*workers)
+        # Flatten the list of lists into a single list of results
+        return [result for worker_result in worker_results for result in worker_result]
 
     def __repr__(self) -> str:
         return (
@@ -72,11 +74,13 @@ class AsyncQueue:
         """
         return self.queue.qsize()
 
-    async def _worker(self):
+    async def _worker(self) -> list[Any]:
         """
         A worker that processes tasks from the queue.
         """
+        results: list[Any] = []
         while not self.queue.empty():
             task = await self.queue.get()
-            await task
+            results.append(await task)
             self.queue.task_done()
+        return results
