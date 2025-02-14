@@ -13,12 +13,6 @@ def main(num_tasks: int = 50, batch_size: int = 10) -> None:
             tasks=tasks.create_tasks(num_tasks), batch_size=batch_size
         )
     )
-    # Batch with queue
-    asyncio.run(
-        batcher.batch_with_queue(
-            tasks=tasks.create_tasks(num_tasks), max_concurrent=batch_size
-        )
-    )
     # Batch with queue class
     asyncio.run(
         batcher.batch_with_queue_class(

@@ -33,22 +33,6 @@ class TestSimpleBatchSize:
         assert self.responses == self.expected
 
 
-class TestBatchWithQueue:
-    @classmethod
-    def setup_class(cls):
-        """
-        Setup the class for the tests. This is run once before any tests are run.
-        """
-        cls.tasks, cls.expected = create_tasks(num_tasks=20)
-        cls.responses = asyncio.run(batcher.batch_with_queue(cls.tasks))
-
-    def test_set_of_responses(self):
-        assert set(self.responses) == set(self.expected)
-
-    def test_list_of_responses(self):
-        assert self.responses == self.expected
-
-
 class TestBatchWithQueueClass:
     @classmethod
     def setup_class(cls):
