@@ -8,6 +8,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "coverage>=7.6.12",
     "pytest>=8.3.4",
 ]
 
