@@ -35,8 +35,8 @@ class AsyncQueue:
             max_concurrent: The maximum number of tasks that can run concurrently.
         """
         super().__init__()
-        self.max_concurrent = max_concurrent
-        self.queue = asyncio.Queue()
+        self.max_concurrent: int = max_concurrent
+        self.queue: asyncio.Queue = asyncio.Queue()
 
     async def puts(self, tasks: Iterable[Awaitable[Any]]) -> None:
         """
