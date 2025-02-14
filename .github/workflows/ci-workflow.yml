@@ -58,9 +58,9 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run -m pytest tests/
-          coverage report --fail-under=80
-          coverage xml
+          uv run coverage run -m pytest tests/
+          uv run coverage report --fail-under=80
+          uv run coverage xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
