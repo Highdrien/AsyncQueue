@@ -6,6 +6,19 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
+[dependency-groups]
+dev = [
+    "coverage>=7.6.12",
+    "pytest>=8.3.4",
+]
+
+
+[tool.pytest.ini_options]
+minversion = "8.3"
+addopts = "--strict-markers --disable-warnings"
+pythonpath = "."
+testpaths = "tests"
+
 [tool.ruff]
 exclude = [
     ".git", "__pycache__", ".venv"
