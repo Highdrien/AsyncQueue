@@ -7,7 +7,7 @@
 [![Isort_logo](https://img.shields.io/badge/isort-checked-yellow)](https://pycqa.github.io/isort/)
 
 ![Static Badge](https://img.shields.io/badge/lint-passing-green)
-![Static Badge](https://img.shields.io/badge/pytest-1%2F3-red)
+![Static Badge](https://img.shields.io/badge/pytest-3%2F6-orange)
 
 This project demonstrates asynchronous task processing in Python using `asyncio`. It includes different methods for processing tasks in batches and with a custom asynchronous queue class.
 
