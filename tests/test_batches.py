@@ -17,16 +17,49 @@ def create_tasks(
     return tasks, expected
 
 
-def test_simple_batch_size():
-    tasks, expected = create_tasks(num_tasks=20)
-    assert asyncio.run(batcher.simple_batch_size(tasks)) == expected
+class TestSimpleBatchSize:
+    @classmethod
+    def setup_class(cls):
+        """
+        Setup the class for the tests. This is run once before any tests are run.
+        """
+        cls.tasks, cls.expected = create_tasks(num_tasks=20)
+        cls.responses = asyncio.run(batcher.simple_batch_size(cls.tasks))
+
+    def test_set_of_responses(self):
+        assert set(self.responses) == set(self.expected)
+
+    def test_list_of_responses(self):
+        assert self.responses == self.expected
 
 
-def test_batch_with_queue():
-    tasks, expected = create_tasks(num_tasks=20)
-    assert asyncio.run(batcher.batch_with_queue(tasks)) == expected
+class TestBatchWithQueue:
+    @classmethod
+    def setup_class(cls):
+        """
+        Setup the class for the tests. This is run once before any tests are run.
+        """
+        cls.tasks, cls.expected = create_tasks(num_tasks=20)
+        cls.responses = asyncio.run(batcher.batch_with_queue(cls.tasks))
+
+    def test_set_of_responses(self):
+        assert set(self.responses) == set(self.expected)
+
+    def test_list_of_responses(self):
+        assert self.responses == self.expected
 
 
-def test_batch_with_queue_class():
-    tasks, expected = create_tasks(num_tasks=20)
-    assert asyncio.run(batcher.batch_with_queue_class(tasks)) == expected
+class TestBatchWithQueueClass:
+    @classmethod
+    def setup_class(cls):
+        """
+        Setup the class for the tests. This is run once before any tests are run.
+        """
+        cls.tasks, cls.expected = create_tasks(num_tasks=20)
+        cls.responses = asyncio.run(batcher.batch_with_queue_class(cls.tasks))
+
+    def test_set_of_responses(self):
+        assert set(self.responses) == set(self.expected)
+
+    def test_list_of_responses(self):
+        assert self.responses == self.expected
