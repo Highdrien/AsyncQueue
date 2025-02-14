@@ -1,8 +1,9 @@
 import asyncio
 import random
-from typing import Coroutine, Any
+from typing import Any, Coroutine
 
 from src import batcher
+from src.async_queue import AsyncQueue
 from src.tasks import add as task_add
 
 
@@ -40,10 +41,46 @@ class TestBatchWithQueueClass:
         Setup the class for the tests. This is run once before any tests are run.
         """
         cls.tasks, cls.expected = create_tasks(num_tasks=20)
-        cls.responses = asyncio.run(batcher.batch_with_queue_class(cls.tasks))
+        cls.responses = asyncio.run(
+            batcher.batch_with_queue_class(cls.tasks, keep_order=True)
+        )
 
     def test_set_of_responses(self):
         assert set(self.responses) == set(self.expected)
 
     def test_list_of_responses(self):
         assert self.responses == self.expected
+
+    def test_set_of_response_without_order(self):
+        tasks, expected = create_tasks(num_tasks=20)
+        responses = asyncio.run(batcher.batch_with_queue_class(tasks, keep_order=False))
+        assert set(responses) == set(expected)
+
+
+class TestAsyncQueue:
+    def test_disorder(self):
+        tasks, expected = create_tasks(num_tasks=20)
+        queue = AsyncQueue(max_concurrent=10, keep_order=False)
+        asyncio.run(queue.puts(tasks))
+        responses = asyncio.run(queue.run())
+        assert set(responses) == set(expected)
+
+    def test_easy_order(self):
+        tasks, expected = create_tasks(num_tasks=20)
+        queue = AsyncQueue(max_concurrent=10, keep_order=True)
+        asyncio.run(queue.puts(tasks))
+        responses = asyncio.run(queue.run())
+        assert responses == expected
+
+    def test_by_adding_multiple_tasks(self):
+        # Add 20 tasks
+        tasks, expected = create_tasks(num_tasks=20)
+        queue = AsyncQueue(max_concurrent=10, keep_order=True)
+        asyncio.run(queue.puts(tasks))
+        # Add 10 new tasks
+        new_tasks, new_expected = create_tasks(num_tasks=10)
+        asyncio.run(queue.puts(new_tasks))
+        # Run the queue
+        responses = asyncio.run(queue.run())
+        assert set(responses) == set(expected + new_expected)
+        assert responses == expected + new_expected

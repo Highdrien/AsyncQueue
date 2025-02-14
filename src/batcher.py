@@ -26,14 +26,14 @@ async def simple_batch_size(
 
 
 async def batch_with_queue_class(
-    tasks: list[Awaitable[int]], max_concurrent: int = 10
+    tasks: list[Awaitable[int]], max_concurrent: int = 10, keep_order: bool = True
 ) -> list[int]:
     """
     Processes tasks asynchronously, ensuring that new tasks are started as soon as
     one finishes.
     """
     start = time.time()
-    queue = AsyncQueue(max_concurrent=max_concurrent)
+    queue = AsyncQueue(max_concurrent=max_concurrent, keep_order=keep_order)
     await queue.puts(tasks)
     print(f"Queue length: {len(queue)}")
     responses = await queue.run()

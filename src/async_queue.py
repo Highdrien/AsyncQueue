@@ -9,6 +9,9 @@ class AsyncQueue:
 
     Attributes:
         max_concurrent (int): The maximum number of tasks that can run concurrently.
+            default: 10
+        keep_order (bool): Whether to keep the order of the tasks (but slower).
+            default: False
         queue (asyncio.Queue): The queue that holds the tasks.
 
     Methods:
@@ -27,16 +30,17 @@ class AsyncQueue:
     ```
     """
 
-    def __init__(self, max_concurrent: int = 10) -> None:
+    def __init__(self, max_concurrent: int = 10, keep_order: bool = False) -> None:
         """
         Init AsyncQueue.
 
         Args:
             max_concurrent: The maximum number of tasks that can run concurrently.
+            keep_order: Whether to keep the order of the tasks.
         """
-        super().__init__()
-        self.max_concurrent: int = max_concurrent
         self.queue: asyncio.Queue = asyncio.Queue()
+        self.max_concurrent: int = max_concurrent
+        self.keep_order: bool = keep_order
 
     async def puts(self, tasks: Iterable[Awaitable[Any]]) -> None:
         """
@@ -45,8 +49,12 @@ class AsyncQueue:
         Args:
             tasks (Iterable[Awaitable[Any]]): A list of tasks to put into the queue.
         """
-        for task in tasks:
-            await self.queue.put(task)
+        if not self.keep_order:
+            for task in tasks:
+                await self.queue.put(task)
+        else:
+            for i, task in enumerate(tasks, start=self.queue.qsize()):
+                await self.queue.put(self._task_with_id(task, _id=i))
 
     async def run(self) -> list[Any]:
         """
@@ -59,8 +67,19 @@ class AsyncQueue:
             asyncio.create_task(self._worker()) for _ in range(self.max_concurrent)
         ]
         worker_results = await asyncio.gather(*workers)
+
         # Flatten the list of lists into a single list of results
-        return [result for worker_result in worker_results for result in worker_result]
+        results = [
+            result for worker_result in worker_results for result in worker_result
+        ]
+
+        # if keep_order is True, results is a list of tuples (id, result)
+        # we need to sort the results by id and return a list of results
+        if self.keep_order:
+            results.sort(key=lambda x: x[0])
+            results = [result[1] for result in results]
+
+        return results
 
     def __repr__(self) -> str:
         return (
@@ -84,3 +103,9 @@ class AsyncQueue:
             results.append(await task)
             self.queue.task_done()
         return results
+
+    async def _task_with_id(self, task: Awaitable[Any], _id: int) -> tuple[int, Any]:
+        """
+        A wrapper that adds an id to a task.
+        """
+        return _id, await task
