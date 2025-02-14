@@ -61,7 +61,7 @@ jobs:
           uvx ruff check
           uvx flake8 .
           uvx black . --check
-          uvx isort .
+          uvx isort . --check
           uvx mypy . --explicit-package-bases
 
   test:

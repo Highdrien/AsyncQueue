@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Coroutine, Any
+from typing import Any, Coroutine
 
 from src import batcher
 from src.tasks import add as task_add
