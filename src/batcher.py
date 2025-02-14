@@ -14,14 +14,15 @@ async def simple_batch_size(
     """
     start = time.time()
     num_batches = ceil(len(tasks) / batch_size)
-    results = []
+    responses = []
     for i in range(0, len(tasks), batch_size):
         print(f"---Processing batch {i // batch_size + 1}/{num_batches}---")
         batch = tasks[i : i + batch_size]
-        results.extend(await asyncio.gather(*batch))
+        responses.extend(await asyncio.gather(*batch))
     end = time.time()
+    print(f"Responses: {responses}, len(responses): {len(responses)}")
     print(f"Time taken: {end - start:.2f} seconds")
-    return results
+    return responses
 
 
 async def batch_with_queue(
@@ -45,6 +46,7 @@ async def batch_with_queue(
 
     workers = [asyncio.create_task(worker()) for _ in range(max_concurrent)]
     responses = await asyncio.gather(*workers)
+    print(f"Responses: {responses}, len(responses): {len(responses)}")
 
     end = time.time()
     print(f"Time taken: {end - start:.2f} seconds")
