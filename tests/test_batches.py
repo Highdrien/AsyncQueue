@@ -2,9 +2,8 @@ import asyncio
 import random
 from typing import Any, Coroutine
 
-from src import batcher
-from src.async_queue import AsyncQueue
-from src.tasks import add as task_add
+from asyncqueue import AsyncQueue, batcher
+from asyncqueue.tasks import add as task_add
 
 
 def create_tasks(
