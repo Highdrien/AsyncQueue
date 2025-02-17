@@ -1,7 +1,7 @@
 import asyncio
 import random
 
-from src import batcher, tasks
+from asyncqueue import batcher, tasks
 
 random.seed(42)
 

@@ -3,7 +3,7 @@ import time
 from math import ceil
 from typing import Awaitable
 
-from src.async_queue import AsyncQueue
+from asyncqueue import AsyncQueue
 
 
 async def simple_batch_size(
