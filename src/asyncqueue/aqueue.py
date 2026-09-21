@@ -1,8 +1,11 @@
 import asyncio
-from typing import Any, Awaitable, Iterable
+from collections.abc import Coroutine, Iterable
+from typing import TypeVar
+
+T = TypeVar("T")
 
 
-class AsyncQueue:
+class AsyncQueue[T]:
     """
     A queue that processes tasks asynchronously, ensuring that new tasks are started as
     soon as one finishes.
@@ -10,8 +13,6 @@ class AsyncQueue:
     Attributes:
         max_concurrent (int): The maximum number of tasks that can run concurrently.
             default: 10
-        keep_order (bool): Whether to keep the order of the tasks (but slower).
-            default: False
         queue (asyncio.Queue): The queue that holds the tasks.
 
     Methods:
@@ -21,7 +22,8 @@ class AsyncQueue:
 
     Example:
     ```python
-    tasks = [asyncio.sleep(10 * random.random()) for _ in range(100)]
+    task = lambda _: asyncio.sleep(10 * random.random())
+    tasks = [task for _ in range(100)]
     queue = AsyncQueue(max_concurrent=10)
     await queue.puts(tasks)
     print(f"Queue length: {len(queue)}")
@@ -30,7 +32,7 @@ class AsyncQueue:
     ```
     """
 
-    def __init__(self, max_concurrent: int = 10, keep_order: bool = False) -> None:
+    def __init__(self, max_concurrent: int = 10) -> None:
         """
         Init AsyncQueue.
 
@@ -40,23 +42,18 @@ class AsyncQueue:
         """
         self.queue: asyncio.Queue = asyncio.Queue()
         self.max_concurrent: int = max_concurrent
-        self.keep_order: bool = keep_order
 
-    async def puts(self, tasks: Iterable[Awaitable[Any]]) -> None:
+    async def puts(self, tasks: Iterable[Coroutine[None, None, T]]) -> None:
         """
         Puts a list of tasks into the queue.
 
         Args:
-            tasks (Iterable[Awaitable[Any]]): A list of tasks to put into the queue.
+            tasks (Iterable[Coroutine[None, None, T]]): A list of tasks to put into the queue.
         """
-        if not self.keep_order:
-            for task in tasks:
-                await self.queue.put(task)
-        else:
-            for i, task in enumerate(tasks, start=self.queue.qsize()):
-                await self.queue.put(self._task_with_id(task, _id=i))
+        for task in tasks:
+            await self.queue.put(task)
 
-    async def run(self) -> list[Any]:
+    async def run(self) -> list[T]:
         """
         Runs the queue and returns a list of results.
 
@@ -64,7 +61,7 @@ class AsyncQueue:
             (list[Any]) A list of results from the tasks.
         """
         workers = [
-            asyncio.create_task(self._worker()) for _ in range(self.max_concurrent)
+            asyncio.create_task(self.__aworker()) for _ in range(self.max_concurrent)
         ]
         worker_results = await asyncio.gather(*workers)
 
@@ -72,12 +69,6 @@ class AsyncQueue:
         results = [
             result for worker_result in worker_results for result in worker_result
         ]
-
-        # if keep_order is True, results is a list of tuples (id, result)
-        # we need to sort the results by id and return a list of results
-        if self.keep_order:
-            results.sort(key=lambda x: x[0])
-            results = [result[1] for result in results]
 
         return results
 
@@ -93,18 +84,51 @@ class AsyncQueue:
         """
         return self.queue.qsize()
 
-    async def _worker(self) -> list[Any]:
+    async def __aworker(self) -> list[T]:
         """
-        A worker that processes tasks from the queue.
+        Runs a worker that processes tasks from the queue.
         """
-        results: list[Any] = []
+        results: list[T] = []
         while not self.queue.empty():
             task = await self.queue.get()
             results.append(await task)
             self.queue.task_done()
         return results
 
-    async def _task_with_id(self, task: Awaitable[Any], _id: int) -> tuple[int, Any]:
+
+class AsyncQueueSorted[T](AsyncQueue[T]):
+    def __init__(self, max_concurrent: int = 10) -> None:
+        super().__init__(max_concurrent)
+
+    async def puts(self, tasks: Iterable[Coroutine[None, None, T]]) -> None:
+        """
+        Puts a list of tasks into the queue.
+
+        Args:
+            tasks (Iterable[Coroutine[None, None, T]]): A list of tasks to put into the queue.
+        """
+        for i, task in enumerate(tasks, start=self.queue.qsize()):
+            await self.queue.put(self.__atask_with_id(task, _id=i))
+
+    async def run(self) -> list[T]:
+        """
+        Runs the queue and returns a list of results.
+
+        Returns:
+            (list[Any]) A list of results from the tasks.
+        """
+        # Run the queue and get the results
+        results = await super().run()
+
+        # Get the results sorted by id
+        results.sort(key=lambda x: x[0])
+        results = [result[1] for result in results]
+
+        return results
+
+    async def __atask_with_id(
+        self, task: Coroutine[None, None, T], _id: int
+    ) -> tuple[int, T]:
         """
         A wrapper that adds an id to a task.
         """
