@@ -11,3 +11,10 @@ wheels/
 
 # IDE
 .vscode/
+
+# Tooling caches and reports
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
