@@ -100,10 +100,14 @@ uv run script/try_it.py
 | `len(queue)`             | Number of tasks still waiting in the queue.                                                                                                  |
 | `repr(queue)`            | `AsyncQueue(max_concurrent=10, with queue size=0)`                                                                                           |
 
+`max_concurrent` must be greater than `0`; the constructor raises `ValueError`
+otherwise.
+
 ### `AsyncQueueSorted[T](max_concurrent: int = 10)`
 
-Subclass of `AsyncQueue`. Tags each task with an incrementing id at `puts` time
-and sorts on it in `run`, so the results come back in submission order — across
+Subclass of `AsyncQueue`, with its own `repr`. Tags each task with an
+incrementing id at `puts` time and sorts on it in `run`, so the results come
+back in submission order — across
 several `puts` and several `run` calls.
 
 ### `await run_tasks(queue, tasks) -> list[T]`
@@ -187,11 +191,11 @@ three jobs on every push and pull request to `main` and `dev`, all inside the
 lands, the suite reports an `XPASS` failure and the marker can be removed:
 
 - error handling: keep the results of the tasks that succeeded, an opt-in
-  `return_exceptions` flag, retries, per-task timeouts;
-- validation: reject a `max_concurrent` of `0` or less, which currently drops
-  every task silently;
-- ergonomics: a single-task `put`, async context manager support, a progress
-  callback, and a `repr` of its own for `AsyncQueueSorted`.
+  `return_exceptions` flag, retries, per-task timeouts, and a queue left usable
+  after a failed run;
+- input validation: reject values that are not coroutines in `puts`;
+- ergonomics: a single-task `put`, async context manager support, and a progress
+  callback.
 
 ## Contributing
 
