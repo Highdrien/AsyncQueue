@@ -4,65 +4,128 @@ on:
   push:
     branches:
       - main
-      - dev
+    tags:
+      - "**"
   pull_request:
-    branches:
-      - main
-      - dev
+
+env:
+  # Fail early instead of silently downloading a different interpreter.
+  UV_PYTHON_DOWNLOADS: automatic
 
 jobs:
   lint:
+    name: Lint (ruff)
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.10.12
-
-      - name: Install UV
-        run: |
-          python -m pip install --upgrade pip
-          pip install uv
-
-      - name: Run linting
-        run: |
-          uvx ruff check
-          uvx flake8 .
-          uvx black . --check
-          uvx isort .
-          uvx mypy .
-
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.10.12
-
-      - name: Install UV
-        run: |
-          python -m pip install --upgrade pip
-          pip install uv
+        uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
+
+      # Mirrors .pre-commit-config.yml, without the `--fix` flags: CI reports,
+      # it does not rewrite the code.
+      - name: Check formatting (ruff-format)
+        run: uv run ruff format --check --diff .
+
+      - name: Lint (ruff-check)
+        run: uv run ruff check .
+
+      - name: Check import sorting (ruff-check --select I)
+        run: uv run ruff check --select I .
+
+  typecheck:
+    name: Type check (ty)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run ty
+        run: uv run ty check
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --locked
 
       - name: Run tests with coverage
         run: |
-          uv run coverage run -m pytest tests/
-          uv run coverage report --fail-under=80
+          uv run coverage run -m pytest
+          uv run coverage report --fail-under=90
           uv run coverage xml
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          file: ./coverage.xml
+          name: coverage-py${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  publish:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, typecheck, test]
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/asyncqueue-py
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check the tag matches the version in pyproject.toml
+        run: |
+          version="$(uv version --short)"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' declares version '${tag}', but pyproject.toml declares '${version}'."
+            exit 1
+          fi
+          echo "Publishing version ${version}"
+
+      - name: Build the distributions
+        run: uv build
+
+      - name: Check the distributions
+        run: uvx twine check dist/*
+
+      - name: Publish
+        run: uv publish --trusted-publishing always
