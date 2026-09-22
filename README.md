@@ -15,6 +15,41 @@
 with a bounded level of concurrency. A new task is started as soon as one
 finishes, so the workers never idle while there is work left in the queue.
 
+## Why this exists
+
+I started this in February 2025, wanting to run a few hundred coroutines without
+firing them all at once, and not knowing that `asyncio.Semaphore` already did
+exactly that:
+
+```python
+sem = asyncio.Semaphore(10)
+
+
+async def bounded(coro):
+    async with sem:
+        return await coro
+
+
+results = await asyncio.gather(*(bounded(c) for c in coros))
+```
+
+Those few lines are `AsyncQueueSorted`, with the results already in submission
+order. The standard library has always covered this, and `asyncio.TaskGroup`
+(3.11+) and `anyio.CapacityLimiter` cover the ground around it.
+
+**If you just need bounded concurrency, use the snippet above.** This package
+does not solve a problem the standard library leaves open.
+
+I kept it anyway, and came back to it in 2026, because it turned out to be a good
+excuse to learn the parts of Python packaging I had never touched: a `src/`
+layout and a build backend, `uv`, `ruff` and `ty`, a test suite that asserts
+concurrency instead of timing it, a CI matrix across Python versions, and
+publishing to PyPI from a tag with Trusted Publishing. Shipping it to PyPI was
+the point; the queue was the excuse.
+
+What is here works, is typed and is covered by tests. It is a learning project,
+and it says so.
+
 ## Overview
 
 Running `asyncio.gather` on a thousand coroutines starts a thousand coroutines at
