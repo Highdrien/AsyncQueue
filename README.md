@@ -1,5 +1,7 @@
 # AsyncQueue — Async Task Processing with Python
 
+[![PyPI](https://img.shields.io/pypi/v/asyncqueue-py)](https://pypi.org/project/asyncqueue-py/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![PythonVersion](https://img.shields.io/badge/Python-3.12%20%7C%203.13-informational)](https://www.python.org/downloads/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/badge/types-ty-261230)](https://github.com/astral-sh/ty)
@@ -35,10 +37,21 @@ and refills a slot the moment a task completes.
 ## Installation
 
 ```bash
-pip install uv
-uv venv --python 3.12
-uv sync
+pip install asyncqueue-py
 ```
+
+```bash
+uv add asyncqueue-py
+```
+
+The distribution is named `asyncqueue-py` because `asyncqueue` is already
+registered on PyPI; the import name is unchanged:
+
+```python
+from asyncqueue import AsyncQueue, AsyncQueueSorted, run_tasks
+```
+
+To work on the package itself, see [Development](#development).
 
 ## Usage
 
@@ -120,6 +133,7 @@ Convenience wrapper: `await queue.puts(tasks)` then `await queue.run()`.
 src/asyncqueue/
 ├── __init__.py   # public API: AsyncQueue, AsyncQueueSorted, run_tasks
 ├── aqueue.py     # AsyncQueue and AsyncQueueSorted
+├── py.typed      # PEP 561 marker: ships the annotations to type checkers
 └── utils.py      # run_tasks helper
 script/
 └── try_it.py     # benchmark of the three execution strategies
@@ -174,15 +188,21 @@ compare against `max_concurrent`.
 
 ## Continuous Integration
 
-[`.github/workflows/ci-workflow.yml`](.github/workflows/ci-workflow.yml) runs
-three jobs on every push and pull request to `main` and `dev`, all inside the
+[`.github/workflows/ci-workflow.yml`](.github/workflows/ci-workflow.yml) runs on
+every push to `main`, every tag and every pull request, inside the
 `ghcr.io/astral-sh/uv:python3.12-bookworm-slim` image:
 
-| Job         | What it checks                                                        |
+| Job         | What it does                                                          |
 | ----------- | --------------------------------------------------------------------- |
 | `lint`      | `ruff format --check`, `ruff check`, `ruff check --select I`          |
 | `typecheck` | `uv run ty check`                                                     |
 | `test`      | `pytest` with coverage on **Python 3.12 and 3.13**, failing under 90% |
+| `publish`   | Tags only: builds and uploads to PyPI, once the three jobs above pass |
+
+Releases go out through [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/),
+so no API token is stored in the repository. `publish` refuses to run if the tag
+does not match the `version` declared in `pyproject.toml`, so cutting a release
+means bumping that version, committing, then tagging `vX.Y.Z`.
 
 ## Roadmap
 

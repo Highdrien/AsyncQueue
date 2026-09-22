@@ -1,10 +1,35 @@
 [project]
-name = "asyncqueue"
+name = "asyncqueue-py"
 version = "0.1.0"
-description = "Add your description here"
+description = "Run coroutines with bounded concurrency: a new task starts as soon as one finishes."
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Highdrien" }]
+keywords = ["asyncio", "async", "queue", "concurrency", "task-queue", "worker-pool"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Highdrien/AsyncQueue"
+Repository = "https://github.com/Highdrien/AsyncQueue"
+Issues = "https://github.com/Highdrien/AsyncQueue/issues"
+
+# The distribution is `asyncqueue-py` on PyPI, but the module stays `asyncqueue`:
+# `pip install asyncqueue-py` then `import asyncqueue`.
+[tool.uv.build-backend]
+module-name = "asyncqueue"
 
 [build-system]
 requires = ["uv_build>=0.10.2,<0.13.0"]

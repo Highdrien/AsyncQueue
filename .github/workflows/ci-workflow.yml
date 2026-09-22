@@ -90,3 +90,42 @@ jobs:
           name: coverage-py${{ matrix.python-version }}
           path: coverage.xml
           if-no-files-found: ignore
+
+  publish:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, typecheck, test]
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/asyncqueue-py
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check the tag matches the version in pyproject.toml
+        run: |
+          version="$(uv version --short)"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' declares version '${tag}', but pyproject.toml declares '${version}'."
+            exit 1
+          fi
+          echo "Publishing version ${version}"
+
+      - name: Build the distributions
+        run: uv build
+
+      - name: Check the distributions
+        run: uvx twine check dist/*
+
+      - name: Publish
+        run: uv publish --trusted-publishing always
